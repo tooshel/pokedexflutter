@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:math';
 
 void main() {
   runApp(const MyApp());
@@ -7,116 +10,355 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Random Pokédex',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
+        useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const PokemonListPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+class Pokemon {
+  final int id;
+  final String name;
+  final String imageUrl;
+  final List<String> types;
+  final int height;
+  final int weight;
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
+  Pokemon({
+    required this.id,
+    required this.name,
+    required this.imageUrl,
+    required this.types,
+    required this.height,
+    required this.weight,
+  });
 
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
+  factory Pokemon.fromJson(Map<String, dynamic> json) {
+    List<String> types = [];
+    for (var type in json['types']) {
+      types.add(type['type']['name']);
+    }
 
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
+    return Pokemon(
+      id: json['id'],
+      name: json['name'],
+      imageUrl: json['sprites']['front_default'] ?? '',
+      types: types,
+      height: json['height'],
+      weight: json['weight'],
+    );
+  }
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class PokemonListPage extends StatefulWidget {
+  const PokemonListPage({super.key});
 
-  void _incrementCounter() {
+  @override
+  State<PokemonListPage> createState() => _PokemonListPageState();
+}
+
+class _PokemonListPageState extends State<PokemonListPage> {
+  List<List<Pokemon>> pokemonHistory = [];
+  int currentIndex = -1;
+  bool isLoading = false;
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRandomPokemon();
+  }
+
+  Future<void> _fetchRandomPokemon() async {
     setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+      isLoading = true;
+      error = null;
     });
+
+    try {
+      List<Pokemon> newPokemonList = [];
+      Set<int> usedIds = {};
+      Random random = Random();
+
+      // Fetch 10 random Pokemon (there are 1010+ Pokemon, so we'll use 1-1000 range)
+      while (newPokemonList.length < 10) {
+        int randomId = random.nextInt(1000) + 1;
+        
+        if (!usedIds.contains(randomId)) {
+          usedIds.add(randomId);
+          
+          final response = await http.get(
+            Uri.parse('https://pokeapi.co/api/v2/pokemon/$randomId'),
+          );
+
+          if (response.statusCode == 200) {
+            final pokemonData = json.decode(response.body);
+            newPokemonList.add(Pokemon.fromJson(pokemonData));
+          }
+        }
+      }
+
+      setState(() {
+        // Remove any lists after current index when adding new list
+        if (currentIndex < pokemonHistory.length - 1) {
+          pokemonHistory = pokemonHistory.sublist(0, currentIndex + 1);
+        }
+        
+        pokemonHistory.add(newPokemonList);
+        currentIndex = pokemonHistory.length - 1;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        error = 'Failed to fetch Pokemon: $e';
+        isLoading = false;
+      });
+    }
+  }
+
+  void _goToPreviousList() {
+    if (currentIndex > 0) {
+      setState(() {
+        currentIndex--;
+      });
+    }
+  }
+
+  void _goToNextList() {
+    if (currentIndex < pokemonHistory.length - 1) {
+      setState(() {
+        currentIndex++;
+      });
+    }
+  }
+
+  List<Pokemon> get currentPokemonList {
+    if (currentIndex >= 0 && currentIndex < pokemonHistory.length) {
+      return pokemonHistory[currentIndex];
+    }
+    return [];
+  }
+
+  Color _getTypeColor(String type) {
+    switch (type.toLowerCase()) {
+      case 'fire':
+        return Colors.red;
+      case 'water':
+        return Colors.blue;
+      case 'grass':
+        return Colors.green;
+      case 'electric':
+        return Colors.yellow;
+      case 'psychic':
+        return Colors.pink;
+      case 'ice':
+        return Colors.lightBlue;
+      case 'dragon':
+        return Colors.indigo;
+      case 'dark':
+        return Colors.black87;
+      case 'fairy':
+        return Colors.pinkAccent;
+      case 'fighting':
+        return Colors.brown;
+      case 'poison':
+        return Colors.purple;
+      case 'ground':
+        return Colors.orange;
+      case 'flying':
+        return Colors.cyan;
+      case 'bug':
+        return Colors.lightGreen;
+      case 'rock':
+        return Colors.grey;
+      case 'ghost':
+        return Colors.deepPurple;
+      case 'steel':
+        return Colors.blueGrey;
+      default:
+        return Colors.grey;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
+        title: const Text('Random Pokédex'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+        actions: [
+          if (pokemonHistory.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: Center(
+                child: Text(
+                  'List ${currentIndex + 1} of ${pokemonHistory.length}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
             ),
-          ],
-        ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Navigation buttons
+          if (pokemonHistory.length > 1)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton(
+                    onPressed: currentIndex > 0 ? _goToPreviousList : null,
+                    child: const Text('Previous List'),
+                  ),
+                  ElevatedButton(
+                    onPressed: currentIndex < pokemonHistory.length - 1 ? _goToNextList : null,
+                    child: const Text('Next List'),
+                  ),
+                ],
+              ),
+            ),
+          
+          // Main content
+          Expanded(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : error != null
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(error!, style: const TextStyle(color: Colors.red)),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _fetchRandomPokemon,
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : currentPokemonList.isEmpty
+                        ? const Center(child: Text('No Pokemon loaded'))
+                        : GridView.builder(
+                            padding: const EdgeInsets.all(8.0),
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 0.8,
+                              crossAxisSpacing: 8.0,
+                              mainAxisSpacing: 8.0,
+                            ),
+                            itemCount: currentPokemonList.length,
+                            itemBuilder: (context, index) {
+                              final pokemon = currentPokemonList[index];
+                              return Card(
+                                elevation: 4,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      // Pokemon image
+                                      Expanded(
+                                        flex: 3,
+                                        child: pokemon.imageUrl.isNotEmpty
+                                            ? Image.network(
+                                                pokemon.imageUrl,
+                                                fit: BoxFit.contain,
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  return const Icon(
+                                                    Icons.catching_pokemon,
+                                                    size: 64,
+                                                    color: Colors.grey,
+                                                  );
+                                                },
+                                              )
+                                            : const Icon(
+                                                Icons.catching_pokemon,
+                                                size: 64,
+                                                color: Colors.grey,
+                                              ),
+                                      ),
+                                      
+                                      // Pokemon name
+                                      Expanded(
+                                        flex: 1,
+                                        child: Text(
+                                          pokemon.name.toUpperCase(),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                      
+                                      // Pokemon ID
+                                      Text(
+                                        '#${pokemon.id.toString().padLeft(3, '0')}',
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      
+                                      // Pokemon types
+                                      Expanded(
+                                        flex: 1,
+                                        child: Wrap(
+                                          spacing: 4.0,
+                                          children: pokemon.types.map((type) {
+                                            return Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 8.0,
+                                                vertical: 2.0,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: _getTypeColor(type),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                type.toUpperCase(),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
+                                      
+                                      // Height and weight
+                                      Text(
+                                        'H: ${(pokemon.height / 10).toStringAsFixed(1)}m W: ${(pokemon.weight / 10).toStringAsFixed(1)}kg',
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+        onPressed: isLoading ? null : _fetchRandomPokemon,
+        tooltip: 'Get New Random Pokemon',
+        child: const Icon(Icons.refresh),
+      ),
     );
   }
 }
