@@ -191,7 +191,7 @@ class _PokemonListPageState extends State<PokemonListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Random Pokédex 222222'),
+        title: const Text('Random Pokédex'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           if (pokemonHistory.isNotEmpty)
