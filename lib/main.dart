@@ -337,6 +337,9 @@ class _PokemonListPageState extends State<PokemonListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final showLabels = screenWidth > 600; // Show labels only on larger screens
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -380,23 +383,40 @@ class _PokemonListPageState extends State<PokemonListPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                ElevatedButton.icon(
-                  onPressed: currentIndex > 0 ? _goToPreviousList : null,
-                  icon: const Icon(Icons.arrow_back_ios),
-                  label: const Text('Previous Team'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: isLoading ? null : _fetchRandomPokemon,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('New Team'),
-                ),
-                ElevatedButton.icon(
-                  onPressed: currentIndex < pokemonHistory.length - 1
-                      ? _goToNextList
-                      : null,
-                  icon: const Icon(Icons.arrow_forward_ios),
-                  label: const Text('Next Team'),
-                ),
+                showLabels
+                    ? ElevatedButton.icon(
+                        onPressed: currentIndex > 0 ? _goToPreviousList : null,
+                        icon: const Icon(Icons.arrow_back_ios),
+                        label: const Text('Previous Team'),
+                      )
+                    : ElevatedButton(
+                        onPressed: currentIndex > 0 ? _goToPreviousList : null,
+                        child: const Icon(Icons.arrow_back_ios),
+                      ),
+                showLabels
+                    ? ElevatedButton.icon(
+                        onPressed: isLoading ? null : _fetchRandomPokemon,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('New Team'),
+                      )
+                    : ElevatedButton(
+                        onPressed: isLoading ? null : _fetchRandomPokemon,
+                        child: const Icon(Icons.refresh),
+                      ),
+                showLabels
+                    ? ElevatedButton.icon(
+                        onPressed: currentIndex < pokemonHistory.length - 1
+                            ? _goToNextList
+                            : null,
+                        icon: const Icon(Icons.arrow_forward_ios),
+                        label: const Text('Next Team'),
+                      )
+                    : ElevatedButton(
+                        onPressed: currentIndex < pokemonHistory.length - 1
+                            ? _goToNextList
+                            : null,
+                        child: const Icon(Icons.arrow_forward_ios),
+                      ),
               ],
             ),
           ),
