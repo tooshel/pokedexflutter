@@ -229,7 +229,7 @@ class _PokemonListPageState extends State<PokemonListPage> {
               padding: const EdgeInsets.only(right: 16.0),
               child: Center(
                 child: Text(
-                  'List ${currentIndex + 1} of ${pokemonHistory.length}',
+                  'Team ${currentIndex + 1} of ${pokemonHistory.length}',
                   style: const TextStyle(fontSize: 16),
                 ),
               ),
@@ -238,26 +238,32 @@ class _PokemonListPageState extends State<PokemonListPage> {
       ),
       body: Column(
         children: [
-          // Navigation buttons
-          if (pokemonHistory.length > 1)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: currentIndex > 0 ? _goToPreviousList : null,
-                    child: const Text('Previous List'),
-                  ),
-                  ElevatedButton(
-                    onPressed: currentIndex < pokemonHistory.length - 1
-                        ? _goToNextList
-                        : null,
-                    child: const Text('Next List'),
-                  ),
-                ],
-              ),
+          // Navigation buttons - always visible
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: currentIndex > 0 ? _goToPreviousList : null,
+                  icon: const Icon(Icons.arrow_back_ios),
+                  label: const Text('Previous Team'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: isLoading ? null : _fetchRandomPokemon,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('New Team'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: currentIndex < pokemonHistory.length - 1
+                      ? _goToNextList
+                      : null,
+                  icon: const Icon(Icons.arrow_forward_ios),
+                  label: const Text('Next Team'),
+                ),
+              ],
             ),
+          ),
 
           // Main content
           Expanded(
@@ -391,11 +397,6 @@ class _PokemonListPageState extends State<PokemonListPage> {
                   ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: isLoading ? null : _fetchRandomPokemon,
-        tooltip: 'Get New Random Pokemon',
-        child: const Icon(Icons.refresh),
       ),
     );
   }
