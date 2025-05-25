@@ -187,6 +187,18 @@ class _PokemonListPageState extends State<PokemonListPage> {
     }
   }
 
+  int _getCrossAxisCount(double screenWidth) {
+    if (screenWidth < 600) {
+      return 2; // Mobile
+    } else if (screenWidth < 900) {
+      return 3; // Tablet
+    } else if (screenWidth < 1200) {
+      return 4; // Small desktop
+    } else {
+      return 5; // Large desktop
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -249,109 +261,113 @@ class _PokemonListPageState extends State<PokemonListPage> {
                   )
                 : currentPokemonList.isEmpty
                 ? const Center(child: Text('No Pokemon loaded'))
-                : GridView.builder(
-                    padding: const EdgeInsets.all(8.0),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final crossAxisCount = _getCrossAxisCount(constraints.maxWidth);
+                      return GridView.builder(
+                        padding: const EdgeInsets.all(8.0),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
                           childAspectRatio: 0.8,
                           crossAxisSpacing: 8.0,
                           mainAxisSpacing: 8.0,
                         ),
-                    itemCount: currentPokemonList.length,
-                    itemBuilder: (context, index) {
-                      final pokemon = currentPokemonList[index];
-                      return Card(
-                        elevation: 4,
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Pokemon image
-                              Expanded(
-                                flex: 3,
-                                child: pokemon.imageUrl.isNotEmpty
-                                    ? Image.network(
-                                        pokemon.imageUrl,
-                                        fit: BoxFit.contain,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                              return const Icon(
-                                                Icons.catching_pokemon,
-                                                size: 64,
-                                                color: Colors.grey,
-                                              );
-                                            },
-                                      )
-                                    : const Icon(
-                                        Icons.catching_pokemon,
-                                        size: 64,
-                                        color: Colors.grey,
-                                      ),
-                              ),
-
-                              // Pokemon name
-                              Expanded(
-                                flex: 1,
-                                child: Text(
-                                  pokemon.name.toUpperCase(),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                        itemCount: currentPokemonList.length,
+                        itemBuilder: (context, index) {
+                          final pokemon = currentPokemonList[index];
+                          return Card(
+                            elevation: 4,
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // Pokemon image
+                                  Expanded(
+                                    flex: 3,
+                                    child: pokemon.imageUrl.isNotEmpty
+                                        ? Image.network(
+                                            pokemon.imageUrl,
+                                            fit: BoxFit.contain,
+                                            errorBuilder:
+                                                (context, error, stackTrace) {
+                                                  return const Icon(
+                                                    Icons.catching_pokemon,
+                                                    size: 64,
+                                                    color: Colors.grey,
+                                                  );
+                                                },
+                                          )
+                                        : const Icon(
+                                            Icons.catching_pokemon,
+                                            size: 64,
+                                            color: Colors.grey,
+                                          ),
                                   ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
 
-                              // Pokemon ID
-                              Text(
-                                '#${pokemon.id.toString().padLeft(3, '0')}',
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 12,
-                                ),
-                              ),
+                                  // Pokemon name
+                                  Expanded(
+                                    flex: 1,
+                                    child: Text(
+                                      pokemon.name.toUpperCase(),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
 
-                              // Pokemon types
-                              Expanded(
-                                flex: 1,
-                                child: Wrap(
-                                  spacing: 4.0,
-                                  children: pokemon.types.map((type) {
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8.0,
-                                        vertical: 2.0,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _getTypeColor(type),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        type.toUpperCase(),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
+                                  // Pokemon ID
+                                  Text(
+                                    '#${pokemon.id.toString().padLeft(3, '0')}',
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 12,
+                                    ),
+                                  ),
 
-                              // Height and weight
-                              Text(
-                                'H: ${(pokemon.height / 10).toStringAsFixed(1)}m W: ${(pokemon.weight / 10).toStringAsFixed(1)}kg',
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.grey,
-                                ),
+                                  // Pokemon types
+                                  Expanded(
+                                    flex: 1,
+                                    child: Wrap(
+                                      spacing: 4.0,
+                                      children: pokemon.types.map((type) {
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8.0,
+                                            vertical: 2.0,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _getTypeColor(type),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            type.toUpperCase(),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                                    ),
+                                  ),
+
+                                  // Height and weight
+                                  Text(
+                                    'H: ${(pokemon.height / 10).toStringAsFixed(1)}m W: ${(pokemon.weight / 10).toStringAsFixed(1)}kg',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
+                            ),
+                          );
+                        },
                       );
                     },
                   ),
